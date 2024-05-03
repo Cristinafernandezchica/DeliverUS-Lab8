@@ -9,9 +9,12 @@ import TextRegular from '../../components/TextRegular'
 import TextSemiBold from '../../components/TextSemibold'
 import * as GlobalStyles from '../../styles/GlobalStyles'
 import defaultProductImage from '../../../assets/product.jpeg'
+import DeleteModal from '../../components/DeleteModal'
+import { remove } from '../../api/ProductEndpoints'
 
 export default function RestaurantDetailScreen ({ navigation, route }) {
   const [restaurant, setRestaurant] = useState({})
+  const [productToBeDeleted, setProductToBeDeleted] = useState(null)
 
   useEffect(() => {
     fetchRestaurantDetail()
@@ -62,6 +65,41 @@ export default function RestaurantDetailScreen ({ navigation, route }) {
         {!item.availability &&
           <TextRegular textStyle={styles.availability }>Not available</TextRegular>
         }
+        <Pressable
+          onPress={() => navigation.navigate('EditProductScreen', { id: item.id })}
+          style={({ pressed }) => [
+            {
+              backgroundColor: pressed
+                ? GlobalStyles.brandBlueTap
+                : GlobalStyles.brandBlue
+            },
+            styles.actionButton
+          ]}>
+          <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+            <MaterialCommunityIcons name='pencil' color={'white'} size={20}/>
+            <TextRegular textStyle={styles.text}>
+              Edit
+            </TextRegular>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={() => { setProductToBeDeleted(item) }}
+          style={({ pressed }) => [
+            {
+              backgroundColor: pressed
+                ? GlobalStyles.brandPrimaryTap
+                : GlobalStyles.brandPrimary
+            },
+            styles.actionButton
+          ]}>
+          <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+            <MaterialCommunityIcons name='delete' color={'white'} size={20}/>
+            <TextRegular textStyle={styles.text}>
+              Delete
+            </TextRegular>
+          </View>
+        </Pressable>
       </ImageCard>
     )
   }
@@ -88,6 +126,29 @@ export default function RestaurantDetailScreen ({ navigation, route }) {
     }
   }
 
+  const removeProduct = async (product) => {
+    try {
+      await remove(product.id)
+      await fetchRestaurantDetail()
+      setProductToBeDeleted(null)
+      showMessage({
+        message: `Product ${product.name} succesfully removed`,
+        type: 'success',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+    } catch (error) {
+      console.log(error)
+      setProductToBeDeleted(null)
+      showMessage({
+        message: `Product ${product.name} could not be removed.`,
+        type: 'error',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+    }
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -98,7 +159,13 @@ export default function RestaurantDetailScreen ({ navigation, route }) {
         renderItem={renderProduct}
         keyExtractor={item => item.id.toString()}
       />
-
+      <DeleteModal
+        isVisible={productToBeDeleted !== null}
+        onCancel={() => setProductToBeDeleted(null)}
+        onConfirm={() => removeProduct(productToBeDeleted)}>
+          <TextRegular>The products of this restaurant will be deleted as well</TextRegular>
+          <TextRegular>If the restaurant has orders, it cannot be deleted.</TextRegular>
+      </DeleteModal>
     </View>
   )
 }
@@ -115,7 +182,7 @@ const styles = StyleSheet.create({
   restaurantHeaderContainer: {
     height: 250,
     padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(170,14,46,255)',
     flexDirection: 'column',
     alignItems: 'center'
   },
@@ -141,7 +208,7 @@ const styles = StyleSheet.create({
     padding: 50
   },
   button: {
-    borderRadius: 8,
+    borderRadius: 25,
     height: 40,
     marginTop: 12,
     padding: 10,
@@ -161,14 +228,14 @@ const styles = StyleSheet.create({
     color: GlobalStyles.brandSecondary
   },
   actionButton: {
-    borderRadius: 8,
-    height: 40,
-    marginTop: 12,
+    borderRadius: 20,
+    height: 32,
+    marginTop: 2,
     margin: '1%',
     padding: 10,
     alignSelf: 'center',
     flexDirection: 'column',
-    width: '50%'
+    width: '35%'
   },
   actionButtonsContainer: {
     flexDirection: 'row',
